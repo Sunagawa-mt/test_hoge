@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  database: "mouse-web-dev",
+  schema: "hogehoge2",
+  name: "tesr_ref",
+  description: "this is description of sql config"
+}
+
+select *
+from ${ref("test_dataform_config")}
+
+-- select *
+-- from 
+--   ${ref("table_name")} / schema.table_name
+-- read more about ref() in the documentation tab -->
