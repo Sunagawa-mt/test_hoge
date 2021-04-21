@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "mouse-web-dev",
+  schema: "Dev_RDS",
+  name: "offices",
+  description: "オフィステーブル : このようにdeclarationで既存テーブルを定義することも可能"
+}

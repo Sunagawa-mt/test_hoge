@@ -1,0 +1,174 @@
+config {
+  type: "incremental",
+  name: "web_events",
+  bigquery:{
+    partitionBy: "event_date"
+  },
+  description: "This is inserting operation to web_events about page_view",
+  tags: ["ga", "view"]
+}
+
+select
+  PARSE_DATE('%Y%m%d', ga_events.event_date) as event_date,
+  DATETIME(
+    timestamp_seconds(
+      cast(ga_events.event_timestamp / 1000000 AS int64)
+    ),
+    'Asia/Tokyo'
+  ) as event_timestamp,
+  ga_events.user_id,
+  ga_events.office_id,
+  rds_companies.name as company_name,
+  ga_events.event_name,
+  ga_events.entrances,
+  ga_events.page_referrer,
+  ga_events.page_title,
+  ga_events.page_path,
+  'view' as event_verb,
+  split(ga_events.page_path, '/') [offset(1)] as category,
+  ga_events.in_house,
+  ga_events.engaged_session_event,
+  ga_events.engagement_time_msec,
+  ga_events.medium,
+  ga_events.app_version,
+  ga_events.ga_session_id,
+  ga_events.session_engaged,
+  ga_events.ga_session_number,
+  DATETIME(
+    timestamp_seconds(
+      cast(
+        ga_events.user_first_touch_timestamp / 1000000 AS int64
+      )
+    ),
+    'Asia/Tokyo'
+  ) as user_first_touch_timestamp,
+  ga_events.device_category,
+  ga_events.device_mobile_model_name,
+  ga_events.device_operating_system,
+  ga_events.device_operating_system_version,
+  ga_events.device_web_info_browser,
+  ga_events.device_web_info_browser_version,
+  ga_events.geo_region,
+  ga_events.geo_city
+from
+  (
+    select
+      event_date,
+      event_timestamp,
+      user_id,
+      event_name,
+      (
+        select
+          as struct any_value(
+            case
+              when key = 'entrances' then value.int_value
+            end
+          ) as entrances,
+          any_value(
+            case
+              when key = 'office_id' then value.int_value
+            end
+          ) as office_id,
+          any_value(
+            case
+              when key = 'page_referrer' then value.string_value
+            end
+          ) as page_referrer,
+          any_value(
+            case
+              when key = 'page_title' then value.string_value
+            end
+          ) as page_title,
+          any_value(
+            case
+              when key = 'page_path' then value.string_value
+            end
+          ) as page_path,
+          any_value(
+            case
+              when key = 'in_house' then value.int_value
+            end
+          ) as in_house,
+          any_value(
+            case
+              when key = 'engaged_session_event' then value.int_value
+            end
+          ) as engaged_session_event,
+          any_value(
+            case
+              when key = 'engagement_time_msec' then value.int_value
+            end
+          ) as engagement_time_msec,
+          any_value(
+            case
+              when key = 'medium' then value.string_value
+            end
+          ) as medium,
+          any_value(
+            case
+              when key = 'app_version' then value.string_value
+            end
+          ) as app_version,
+          any_value(
+            case
+              when key = 'ga_session_id' then value.int_value
+            end
+          ) as ga_session_id,
+          any_value(
+            case
+              when key = 'session_engaged' then value.string_value
+            end
+          ) as session_engaged,
+          any_value(
+            case
+              when key = 'ga_session_number' then value.string_value
+            end
+          ) as ga_session_number,
+        from
+          unnest(event_params) as ga_events
+      ).*,
+      user_first_touch_timestamp,
+      device.category as device_category,
+      device.mobile_model_name as device_mobile_model_name,
+      device.operating_system as device_operating_system,
+      device.operating_system_version as device_operating_system_version,
+      device.web_info.browser as device_web_info_browser,
+      device.web_info.browser_version as device_web_info_browser_version,
+      geo.region as geo_region,
+      geo.city as geo_city,
+    from
+      `mouse-web-dev.analytics_252590784.events_*`
+    where
+      event_name = 'page_view'
+      and _TABLE_SUFFIX = FORMAT_DATE(
+        "%Y%m%d",
+        DATE_SUB(CURRENT_DATE('Asia/Tokyo'), INTERVAL 1 DAY)
+      )
+  ) as ga_events
+  left outer join ${ref('offices')} as rds_offices on ga_events.office_id = rds_offices.id
+  left outer join ${ref('companies')} as rds_companies on rds_offices.companyId = rds_companies.id
+where
+  starts_with(page_title, 'err')
+  or starts_with(page_title, 'error')
+  or starts_with(page_title, 'forgot')
+  or starts_with(page_title, 'login')
+  or (
+    in_house = 0
+    and (
+      starts_with(page_title, 'master_data')
+      or starts_with(page_title, 'achievements')
+      or starts_with(page_title, 'err')
+      or starts_with(page_title, 'error')
+      or starts_with(page_title, 'forgot')
+      or starts_with(page_title, 'login')
+      or starts_with(page_title, 'message')
+      or starts_with(page_title, 'profile')
+      or starts_with(page_title, 'project_list')
+      or starts_with(page_title, 'reset_password')
+      or starts_with(page_title, 'schedule')
+      or starts_with(page_title, 'send_message')
+      or starts_with(page_title, 'vehicle_report')
+      or starts_with(page_title, 'work_order')
+      or starts_with(page_title, 'billing')
+    )
+  )

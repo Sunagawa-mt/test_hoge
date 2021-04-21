@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "mouse-web-dev",
+  schema: "lookup_tables",
+  name: "hoge",
+  
+}

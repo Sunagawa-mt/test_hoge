@@ -1,6 +1,6 @@
 {
     "warehouse": "bigquery",
-    "defaultSchema": "hogehoge2",
+    "defaultSchema": "lookup_tables",
     "assertionSchema": "dataform_assertions",
     "defaultDatabase": "mouse-web-dev"
 }
